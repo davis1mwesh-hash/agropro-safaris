@@ -26,7 +26,10 @@ export default function AdminPage() {
   }
 
   async function fetchBookings() {
-    const { data } = await supabase.from('bookings').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase
+      .from('bookings')
+      .select('*, farms(name)')
+      .order('created_at', { ascending: false })
     if (data) setBookings(data)
   }
 

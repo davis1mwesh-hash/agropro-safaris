@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, use } from 'react'
 import Link from 'next/link'
+import { supabase } from '../../../lib/supabase'
 
 const farmsData: Record<string, any> = {
   'kirinyaga-coffee-estate': {
@@ -64,7 +65,6 @@ const farmsData: Record<string, any> = {
 
 const allDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
-import { use } from 'react'
 
 export default function FarmPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
@@ -91,11 +91,29 @@ export default function FarmPage({ params }: { params: Promise<{ slug: string }>
   const total = farm.price * guests
   const yourShare = Math.round(total * 0.9)
 
-  function handleBook() {
+  async function handleBook() {
     if (!name || !phone || !date) {
       alert('Please fill in your name, phone, and visit date.')
       return
     }
+    const { data: farmData } = await supabase
+      .from('farms')
+      .select('id')
+      .ilike('name', farm.name)
+      .single()
+    await supabase.from('bookings').insert([{
+      farm_id: farmData?.id || null,
+      visitor_name: name,
+      visitor_phone: phone,
+      visitor_email: email,
+      visit_date: date,
+      guests: guests,
+      total_amount: total,
+      farm_share: yourShare,
+      commission: total - yourShare,
+      status: 'pending',
+      payout_status: 'unpaid',
+    }])
     setBooked(true)
   }
 

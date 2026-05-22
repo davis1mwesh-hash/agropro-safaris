@@ -133,14 +133,14 @@ export default function FarmDashboard() {
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Name</label>
               <input value={farmName} onChange={e => setFarmName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                 placeholder="e.g. Kirinyaga Coffee Estate"/>
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Password</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doLogin()}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                 placeholder="Your password"/>
             </div>
           </div>
@@ -287,30 +287,30 @@ export default function FarmDashboard() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Name</label>
                   <input value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"/>
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Type</label>
                   <input value={editForm.type || ''} onChange={e => setEditForm({...editForm, type: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"/>
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">County</label>
                   <input value={editForm.county || ''} onChange={e => setEditForm({...editForm, county: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"/>
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Price Per Person (KES)</label>
                   <input type="number" value={editForm.price_per_person || ''} onChange={e => setEditForm({...editForm, price_per_person: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"/>
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Location</label>
                 <input value={editForm.location || ''} onChange={e => setEditForm({...editForm, location: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"/>
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Description</label>
@@ -320,7 +320,7 @@ export default function FarmDashboard() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">M-Pesa Number for Payouts</label>
                 <input value={editForm.mpesa_number || ''} onChange={e => setEditForm({...editForm, mpesa_number: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
                   placeholder="e.g. 0712 345 678"/>
               </div>
             </div>
@@ -422,14 +422,14 @@ export default function FarmDashboard() {
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Event Name *</label>
                       <input value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
                         placeholder="e.g. Coffee Harvest Festival"/>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Date *</label>
                         <input type="date" value={eventForm.event_date} onChange={e => setEventForm({...eventForm, event_date: e.target.value})}
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"/>
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Time</label>
@@ -449,13 +449,13 @@ export default function FarmDashboard() {
                       <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Price (KES) *</label>
                         <input type="number" value={eventForm.price} onChange={e => setEventForm({...eventForm, price: e.target.value})}
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
                           placeholder="e.g. 4500"/>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Max Attendees</label>
                         <input type="number" value={eventForm.max_attendees} onChange={e => setEventForm({...eventForm, max_attendees: e.target.value})}
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c]"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
                           placeholder="e.g. 30"/>
                       </div>
                     </div>

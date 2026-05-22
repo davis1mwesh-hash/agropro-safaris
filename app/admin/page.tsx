@@ -232,13 +232,13 @@ export default function AdminPage() {
                         <div className="font-semibold text-gray-900 text-sm">{farm.name}</div>
                         <div className="text-xs text-gray-400">{farm.location}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{farm.type}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{farm.county}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{farm.type}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{farm.county}</td>
                       <td className="px-6 py-4">
-                        <div className="text-xs text-gray-600">{farm.host_phone}</div>
+                        <div className="text-xs text-gray-800">{farm.host_phone}</div>
                         <div className="text-xs text-gray-400">{farm.host_email}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{farm.visit_date}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{farm.visit_date}</td>
                       <td className="px-6 py-4">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                           farm.status === 'approved' ? 'bg-green-100 text-green-700' :
@@ -305,11 +305,11 @@ export default function AdminPage() {
                         <div className="font-semibold text-gray-900 text-sm">{farm.name}</div>
                         <div className="text-xs text-gray-400">{farm.county}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{farm.type}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{farm.type}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
                         KES {farm.price_per_person?.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{farm.mpesa_number}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{farm.mpesa_number}</td>
                       <td className="px-6 py-4 text-xs text-gray-500">
                         {farm.open_days?.join(' · ')}
                       </td>
@@ -352,9 +352,9 @@ export default function AdminPage() {
                         <div className="font-semibold text-sm text-gray-900">{b.visitor_name}</div>
                         <div className="text-xs text-gray-400">{b.visitor_phone}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{b.farm_id}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{b.visit_date}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{b.guests}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{b.farm_id}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{b.visit_date}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{b.guests}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
                         KES {b.total_amount?.toLocaleString()}
                       </td>
@@ -397,7 +397,7 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-gray-50">
                   {bookings.map(b => (
                     <tr key={b.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-600">{b.visitor_name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{b.visitor_name}</td>
                       <td className="px-6 py-4 text-sm font-semibold">KES {b.total_amount?.toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
                         KES {Math.round(b.total_amount * 0.1)?.toLocaleString()}

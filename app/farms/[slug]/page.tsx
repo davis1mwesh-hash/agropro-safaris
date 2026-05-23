@@ -1,22 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-
-const categories = [
-  {icon:'🌿', name:'All'},
-  {icon:'☕', name:'Coffee'},
-  {icon:'🍵', name:'Tea'},
-  {icon:'🐄', name:'Dairy'},
-  {icon:'🥬', name:'Organic'},
-  {icon:'🥑', name:'Avocado'},
-  {icon:'🐝', name:'Beekeeping'},
-  {icon:'🐔', name:'Poultry'},
-  {icon:'🐟', name:'Fish'},
-  {icon:'💧', name:'Hydroponic'},
-  {icon:'🏡', name:'Eco Lodge'},
-  {icon:'📚', name:'Educational'},
-]
 
 const emojis: Record<string, string> = {
   Coffee:'☕', Tea:'🍵', Dairy:'🐄', Organic:'🥬',
@@ -24,30 +9,108 @@ const emojis: Record<string, string> = {
   Hydroponic:'💧', 'Eco Lodge':'🏡', Educational:'📚', Mixed:'🌾'
 }
 
-export default function FarmsPage() {
-  const [active, setActive] = useState('All')
-  const [search, setSearch] = useState('')
-  const [farms, setFarms] = useState<any[]>([])
+export default function FarmPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+  const [farm, setFarm] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [guests, setGuests] = useState(1)
+  const [date, setVisitDate] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [booked, setBooked] = useState(false)
 
-  useEffect(() => { fetchFarms() }, [])
+  useEffect(() => { fetchFarm() }, [slug])
 
-  async function fetchFarms() {
+  async function fetchFarm() {
     const { data } = await supabase
       .from('farms')
       .select('*')
       .eq('status', 'approved')
-      .order('created_at', { ascending: false })
-    if (data) setFarms(data)
+    if (data) {
+      const found = data.find(f => {
+        const farmSlug = f.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        return farmSlug === slug
+      })
+      setFarm(found || null)
+    }
     setLoading(false)
   }
 
-  const filtered = farms.filter(f => {
-    const matchCat = active === 'All' || f.type?.toLowerCase().includes(active.toLowerCase())
-    const matchSearch = f.name?.toLowerCase().includes(search.toLowerCase()) ||
-      f.county?.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
-  })
+  const total = farm ? farm.price_per_person * guests : 0
+  const yourShare = Math.round(total * 0.9)
+
+  async function handleBook() {
+    if (!name || !phone || !date) {
+      alert('Please fill in your name, phone, and visit date.')
+      return
+    }
+    await supabase.from('bookings').insert([{
+      farm_id: farm.id,
+      visitor_name: name,
+      visitor_phone: phone,
+      visitor_email: email,
+      visit_date: date,
+      guests,
+      total_amount: total,
+      farm_share: yourShare,
+      commission: total - yourShare,
+      status: 'pending',
+      payout_status: 'unpaid',
+    }])
+    setBooked(true)
+  }
+
+  if (loading) return (
+    <main className="min-h-screen bg-[#faf8f4] flex items-center justify-center">
+      <div className="text-center text-gray-400">
+        <div className="text-5xl mb-4">🌾</div>
+        <p>Loading farm...</p>
+      </div>
+    </main>
+  )
+
+  if (!farm) return (
+    <main className="min-h-screen bg-[#faf8f4] flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-6xl mb-4">🌾</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Farm not found</h1>
+        <Link href="/farms" className="text-[#2d6a4f] font-semibold">← Back to farms</Link>
+      </div>
+    </main>
+  )
+
+  const emoji = emojis[farm.type] || '🌾'
+
+  if (booked) return (
+    <main className="min-h-screen bg-[#faf8f4] flex items-center justify-center px-6">
+      <div className="bg-white rounded-2xl p-10 max-w-md w-full text-center shadow-lg">
+        <div className="text-6xl mb-4">🎉</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Booking Request Sent!</h2>
+        <p className="text-gray-500 mb-6">
+          Thank you <strong>{name}</strong>! Your booking for <strong>{farm.name}</strong> on <strong>{date}</strong> for <strong>{guests} guest{guests > 1 ? 's' : ''}</strong> has been received.
+          <br/><br/>
+          AgroPro Safaris will contact you on <strong>{phone}</strong> within 24 hours.
+        </p>
+        <div className="bg-[#f0faf2] rounded-xl p-4 mb-6 text-left">
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-gray-500">Total</span>
+            <span className="font-bold">KES {total.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Contact</span>
+            <span className="font-bold">{phone}</span>
+          </div>
+        </div>
+        <a href={`https://wa.me/254710701013?text=Hi! I booked ${farm.name} for ${date}. My name is ${name}.`}
+          target="_blank"
+          className="bg-[#25d366] text-white px-6 py-3 rounded-full font-semibold inline-block mb-4 hover:bg-[#20bd5a] transition w-full">
+          💬 WhatsApp Us to Confirm
+        </a>
+        <Link href="/farms" className="text-[#2d6a4f] text-sm font-semibold block">← Explore more farms</Link>
+      </div>
+    </main>
+  )
 
   return (
     <main className="min-h-screen bg-[#faf8f4]">
@@ -56,98 +119,109 @@ export default function FarmsPage() {
           <div className="w-9 h-9 bg-[#40916c] rounded-lg flex items-center justify-center text-xl">🌿</div>
           <span className="font-bold text-white text-lg">AgroPro Safaris</span>
         </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/farms" className="text-white text-sm font-semibold border-b-2 border-[#e9a825]">Explore Farms</Link>
-          <Link href="/register-farm" className="bg-[#e9a825] text-white px-4 py-2 rounded-full text-sm font-semibold">Register Farm</Link>
-        </div>
+        <Link href="/farms" className="text-white/70 hover:text-white text-sm">← Back to farms</Link>
       </nav>
 
-      <div className="bg-[#1a3d2b] px-6 pb-10 pt-4">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-2">Explore Farms</h1>
-          <p className="text-white/60 mb-6">Every farm personally visited and verified by AgroPro Safaris</p>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Search by farm name or location..."
-            className="w-full max-w-lg px-4 py-3 rounded-xl text-sm outline-none text-gray-700"/>
+      <div className="h-72 md:h-80 bg-gradient-to-br from-[#1a3d2b] to-[#52b788] flex items-center justify-center text-9xl relative">
+        {emoji}
+        <div className="absolute bottom-4 left-6 flex gap-2">
+          <span className="bg-white text-[#2d6a4f] text-xs font-bold px-3 py-1 rounded-full">{farm.type} Farm</span>
+          <span className="bg-[#e9a825] text-white text-xs font-bold px-3 py-1 rounded-full">✓ Verified</span>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex gap-3 overflow-x-auto pb-4 mb-8">
-          {categories.map(c => (
-            <button key={c.name} onClick={() => setActive(c.name)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition ${
-                active === c.name ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#40916c]'
-              }`}>
-              {c.icon} {c.name}
+      <div className="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{farm.name}</h1>
+            <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
+              <span>📍 {farm.location || farm.county}</span>
+              <span>⭐ {farm.avg_rating || '—'} ({farm.total_reviews || 0} reviews)</span>
+              <span>👥 Up to {farm.max_visitors} visitors</span>
+            </div>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">About this farm</h2>
+            <p className="text-gray-600 leading-relaxed">{farm.description}</p>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Open days</h2>
+            <div className="flex gap-2 flex-wrap">
+              {farm.open_days?.map((day: string) => (
+                <span key={day} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-full text-sm font-semibold">{day}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Accommodation</h2>
+            <p className="text-gray-600">{farm.accommodation || 'Contact us for details'}</p>
+          </div>
+        </div>
+
+        <div className="md:col-span-1">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md sticky top-6">
+            <div className="text-2xl font-bold text-[#2d6a4f] mb-1">
+              KES {farm.price_per_person?.toLocaleString()}
+              <span className="text-sm font-normal text-gray-400 ml-1">/ person</span>
+            </div>
+            <div className="text-sm text-gray-500 mb-5">⭐ {farm.avg_rating || '—'} · {farm.total_reviews || 0} reviews</div>
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Your Name</label>
+                <input value={name} onChange={e => setName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                  placeholder="Full name"/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Phone</label>
+                <input value={phone} onChange={e => setPhone(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                  placeholder="07XX XXX XXX"/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Email</label>
+                <input value={email} onChange={e => setEmail(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                  placeholder="you@email.com"/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Visit Date</label>
+                <input type="date" value={date} onChange={e => setVisitDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Guests</label>
+                <select value={guests} onChange={e => setGuests(Number(e.target.value))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#40916c] bg-white text-gray-900">
+                  {[1,2,3,4,5,6,7,8,9,10,15,20].map(n => (
+                    <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 pt-4 mb-4">
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-500">KES {farm.price_per_person?.toLocaleString()} × {guests}</span>
+                <span className="font-semibold text-gray-900">KES {total.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Platform fee (10%)</span>
+                <span>Included</span>
+              </div>
+            </div>
+            <button onClick={handleBook}
+              className="w-full bg-[#2d6a4f] text-white py-3 rounded-xl font-semibold hover:bg-[#40916c] transition mb-3">
+              Request Booking
             </button>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-gray-500"><strong className="text-gray-900">{filtered.length}</strong> farms available</p>
-          <select className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none bg-white text-gray-900">
-            <option>Top rated</option>
-            <option>Price: Low to High</option>
-            <option>Newest</option>
-          </select>
-        </div>
-
-        {loading && (
-          <div className="text-center py-20 text-gray-400">
-            <div className="text-4xl mb-3">🌾</div>
-            <p>Loading farms...</p>
+            <p className="text-xs text-gray-400 text-center">Contacted within 24 hours to confirm payment via M-Pesa.</p>
+            <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+              <a href="https://wa.me/254710701013" target="_blank" className="text-sm text-[#25d366] font-semibold">💬 Questions? WhatsApp us</a>
+            </div>
           </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">🌾</div>
-            <p className="text-gray-500">No farms found.</p>
-          </div>
-        )}
-
-        {!loading && filtered.length > 0 && (
-          <div className="grid md:grid-cols-3 gap-6">
-            {filtered.map(farm => {
-              const slug = farm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-              const emoji = emojis[farm.type] || '🌾'
-              return (
-                <Link href={`/farms/${slug}`} key={farm.id}
-                  className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition group">
-                  <div className="h-48 bg-gradient-to-br from-[#2d6a4f] to-[#52b788] flex items-center justify-center text-6xl relative">
-                    {emoji}
-                    <span className="absolute top-3 left-3 bg-white text-[#2d6a4f] text-xs font-bold px-3 py-1 rounded-full">{farm.type} Farm</span>
-                  </div>
-                  <div className="p-5">
-                    <div className="text-xs text-gray-400 mb-1">📍 {farm.county}</div>
-                    <h3 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-[#2d6a4f] transition">{farm.name}</h3>
-                    <p className="text-xs text-gray-500 mb-3 line-clamp-2">{farm.description}</p>
-                    <div className="text-xs text-[#40916c] font-medium mb-3">✅ Open: {farm.open_days?.join(' · ')}</div>
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="text-sm">⭐ <strong>{farm.avg_rating || '—'}</strong> <span className="text-gray-400">({farm.total_reviews || 0})</span></div>
-                      <div className="text-right">
-                        <div className="font-bold text-[#2d6a4f]">KES {farm.price_per_person?.toLocaleString()}</div>
-                        <div className="text-xs text-gray-400">per person</div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="mt-16 bg-[#1a3d2b] rounded-2xl p-8 text-center">
-          <h3 className="text-2xl font-bold text-white mb-2">Own a farm?</h3>
-          <p className="text-white/60 mb-6 text-sm">Join AgroPro Safaris and turn your farm into a destination.</p>
-          <Link href="/register-farm" className="bg-[#e9a825] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#f4c84a] transition inline-block">
-            🌾 Register My Farm
-          </Link>
         </div>
       </div>
 
-      <footer className="bg-[#0f2419] text-white/40 py-8 px-6 mt-12 text-center text-sm">
+      <footer className="bg-[#0f2419] text-white/40 py-8 px-6 text-center text-sm mt-12">
         © 2025 AgroPro Safaris. Made with ❤️ in Kenya.
       </footer>
     </main>

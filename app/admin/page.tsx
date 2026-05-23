@@ -355,7 +355,7 @@ export default function AdminPage() {
                         <div className="font-semibold text-sm text-gray-900">{b.visitor_name}</div>
                         <div className="text-xs text-gray-400">{b.visitor_phone}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{b.farm_id}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{b.farms?.name || '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-800">{b.visit_date}</td>
                       <td className="px-6 py-4 text-sm text-gray-800">{b.guests}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">

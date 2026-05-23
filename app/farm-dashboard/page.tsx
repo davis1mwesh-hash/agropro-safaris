@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 const DEMO_FARMS: Record<string, {password: string}> = {
   'kirinyaga coffee estate': { password: 'coffee2025' },

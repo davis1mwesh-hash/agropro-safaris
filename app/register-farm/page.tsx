@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function RegisterFarmPage() {
   const [step, setStep] = useState(1)

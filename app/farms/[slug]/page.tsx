@@ -1,7 +1,7 @@
 'use client'
 import { useState, use } from 'react'
 import Link from 'next/link'
-'@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 const farmsData: Record<string, any> = {
   'kirinyaga-coffee-estate': {

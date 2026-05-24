@@ -33,8 +33,19 @@ export default function FarmPage({ params }: { params: Promise<{ slug: string }>
         return farmSlug === slug
       })
       setFarm(found || null)
+      if (found) fetchEvents(found.id)
     }
     setLoading(false)
+  }
+
+  async function fetchEvents(farmId: string) {
+    const { data } = await supabase
+      .from('events')
+      .select('*')
+      .eq('farm_id', farmId)
+      .eq('status', 'approved')
+      .order('event_date', { ascending: true })
+    if (data) setEvents(data)
   }
 
   const total = farm ? farm.price_per_person * guests : 0
@@ -156,6 +167,46 @@ export default function FarmPage({ params }: { params: Promise<{ slug: string }>
             <h2 className="text-lg font-bold text-gray-900 mb-3">Accommodation</h2>
             <p className="text-gray-600">{farm.accommodation || 'Contact us for details'}</p>
           </div>
+
+          {events.length > 0 && (
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">🎪 Upcoming Events</h2>
+              <div className="space-y-4">
+                {events.map(event => (
+                  <div key={event.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition">
+                    {event.poster_url && (
+                      <img src={event.poster_url} alt={event.title}
+                        className="w-full h-48 object-cover"/>
+                    )}
+                    {!event.poster_url && (
+                      <div className="w-full h-24 bg-gradient-to-br from-[#1a3d2b] to-[#52b788] flex items-center justify-center text-4xl">
+                        🎪
+                      </div>
+                    )}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <h3 className="font-bold text-gray-900 text-lg">{event.title}</h3>
+                        <span className="bg-[#e9a825] text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
+                          {event.price === 0 ? 'FREE' : `KES ${event.price?.toLocaleString()}`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
+                        <span>📅 {event.event_date}</span>
+                        <span>🕐 {event.event_time}</span>
+                        <span>👥 Max {event.max_attendees}</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">{event.description}</p>
+                      <a href={`https://wa.me/254710701013?text=Hi! I'm interested in the ${event.title} event at ${farm.name} on ${event.event_date}.`}
+                        target="_blank"
+                        className="w-full bg-[#2d6a4f] text-white py-2.5 rounded-xl font-semibold hover:bg-[#40916c] transition text-sm text-center block">
+                        Book This Event
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-1">

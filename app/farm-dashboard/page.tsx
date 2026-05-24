@@ -2,69 +2,53 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
-const ADMIN_PASSWORD = 'agropro2025'
+const DEMO_FARMS: Record<string, {password: string}> = {
+  'kirinyaga coffee estate': { password: 'coffee2025' },
+  'limuru green valley farm': { password: 'dairy2025' },
+  'thika organic gardens': { password: 'organic2025' },
+  'mwende farm': { password: 'mwende2025' },
+}
 
-export default function AdminPage() {
+export default function FarmDashboard() {
   const [authed, setAuthed] = useState(false)
+  const [farmName, setFarmName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
-  const [page, setPage] = useState('dashboard')
-  const [farms, setFarms] = useState<any[]>([])
+  const [page, setPage] = useState('overview')
+  const [farm, setFarm] = useState<any>(null)
   const [bookings, setBookings] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [photos, setPhotos] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [editForm, setEditForm] = useState<any>({})
+  const [eventForm, setEventForm] = useState({
+    title: '', description: '', event_date: '',
+    event_time: 'Morning', price: '', max_attendees: '', event_type: 'Festival'
+  })
+  const [events, setEvents] = useState<any[]>([])
+  const [showEventForm, setShowEventForm] = useState(false)
 
-  useEffect(() => {
-    if (authed) {
-      fetchFarms()
-      fetchBookings()
-    }
-  }, [authed])
-
-  async function fetchFarms() {
-    const { data } = await supabase
-      .from('farms')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (data) setFarms(data)
-  }
-
-  async function fetchBookings() {
-    const { data } = await supabase
-      .from('bookings')
-      .select('*, farms(name)')
-      .order('created_at', { ascending: false })
-    if (data) setBookings(data)
-  }
-
-  async function approveFarm(id: string) {
-    setLoading(true)
-    await supabase.from('farms').update({ status: 'approved' }).eq('id', id)
-    await fetchFarms()
-    setLoading(false)
-  }
-
-  async function rejectFarm(id: string) {
-    setLoading(true)
-    await supabase.from('farms').update({ status: 'rejected' }).eq('id', id)
-    await fetchFarms()
-    setLoading(false)
-  }
-
-  async function deleteFarm(id: string, name: string) {
-    if (!confirm(`Permanently delete "${name}"? This cannot be undone.`)) return
-    setLoading(true)
-    await supabase.from('farms').delete().eq('id', id)
-    await fetchFarms()
-    setLoading(false)
-  }
-
-  async function markPaid(bookingId: string) {
-    await supabase.from('bookings').update({ payout_status: 'paid' }).eq('id', bookingId)
-    fetchBookings()
-  }
-
-  function doLogin() {
-    if (password === ADMIN_PASSWORD) {
+  async function doLogin() {
+    const key = farmName.toLowerCase().trim()
+    const match = DEMO_FARMS[key]
+    if (match && match.password === password) {
+      // Find farm in database
+      const { data } = await supabase
+        .from('farms')
+        .select('*')
+        .ilike('name', farmName.trim())
+        .single()
+      if (data) {
+        setFarm(data)
+        setEditForm(data)
+        fetchBookings(data.id)
+        fetchEvents(data.id)
+      } else {
+        // Use demo data if not in DB yet
+        setFarm({ name: farmName, type: 'Farm', county: 'Kenya', status: 'approved', price_per_person: 3500, avg_rating: 4.9 })
+        setEditForm({ name: farmName, type: 'Farm', county: 'Kenya', price_per_person: 3500 })
+      }
       setAuthed(true)
       setError(false)
     } else {
@@ -72,11 +56,64 @@ export default function AdminPage() {
     }
   }
 
-  const pending = farms.filter(f => f.status === 'pending')
-  const approved = farms.filter(f => f.status === 'approved')
-  const rejected = farms.filter(f => f.status === 'rejected')
-  const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
-  const totalCommission = Math.round(totalRevenue * 0.1)
+  async function fetchBookings(farmId: string) {
+    const { data } = await supabase.from('bookings').select('*').eq('farm_id', farmId)
+    if (data) setBookings(data)
+  }
+
+  async function fetchEvents(farmId: string) {
+    const { data } = await supabase.from('events').select('*').eq('farm_id', farmId)
+    if (data) setEvents(data)
+  }
+
+  async function saveChanges() {
+    setSaving(true)
+    if (farm?.id) {
+      await supabase.from('farms').update({
+        ...editForm,
+        status: 'pending' // requires re-approval
+      }).eq('id', farm.id)
+    }
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
+  }
+
+  async function submitEvent() {
+    if (!eventForm.title || !eventForm.event_date || !eventForm.price) {
+      alert('Please fill in event name, date, and price.')
+      return
+    }
+    if (farm?.id) {
+      await supabase.from('events').insert([{
+        farm_id: farm.id,
+        title: eventForm.title,
+        description: eventForm.description,
+        event_date: eventForm.event_date,
+        event_time: eventForm.event_time,
+        price: Number(eventForm.price),
+        max_attendees: Number(eventForm.max_attendees),
+        event_type: eventForm.event_type,
+        status: 'pending'
+      }])
+      fetchEvents(farm.id)
+    }
+    setShowEventForm(false)
+    setEventForm({ title:'', description:'', event_date:'', event_time:'Morning', price:'', max_attendees:'', event_type:'Festival' })
+    alert('✅ Event submitted for AgroPro Safaris approval!')
+  }
+
+  const navItems = [
+    { id: 'overview', icon: '📊', label: 'Overview' },
+    { id: 'listing', icon: '🌾', label: 'My Listing' },
+    { id: 'photos', icon: '📷', label: 'Photos' },
+    { id: 'availability', icon: '📅', label: 'Open Days' },
+    { id: 'events', icon: '🎪', label: 'Events' },
+    { id: 'bookings', icon: '📋', label: 'Bookings' },
+    { id: 'earnings', icon: '💰', label: 'Earnings' },
+  ]
+
+  const totalEarned = bookings.reduce((sum, b) => sum + (b.total_amount * 0.9 || 0), 0)
 
   if (!authed) {
     return (
@@ -84,55 +121,53 @@ export default function AdminPage() {
         <div className="bg-white rounded-2xl p-10 max-w-sm w-full shadow-xl">
           <div className="text-center mb-8">
             <div className="w-14 h-14 bg-[#1a3d2b] rounded-xl flex items-center justify-center text-3xl mx-auto mb-3">🌿</div>
-            <h1 className="text-xl font-bold text-gray-900">AgroPro Safaris</h1>
-            <p className="text-gray-400 text-sm">Admin Portal</p>
+            <h1 className="text-xl font-bold text-gray-900">Farm Portal</h1>
+            <p className="text-gray-400 text-sm">AgroPro Safaris</p>
           </div>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2 rounded-xl mb-4 text-center">
-              Incorrect password
+              Incorrect farm name or password
             </div>
           )}
-          <div className="mb-4">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && doLogin()}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
-              placeholder="Enter admin password"
-            />
+          <div className="space-y-3 mb-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Name</label>
+              <input value={farmName} onChange={e => setFarmName(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                placeholder="e.g. Kirinyaga Coffee Estate"/>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && doLogin()}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                placeholder="Your password"/>
+            </div>
           </div>
           <button onClick={doLogin}
             className="w-full bg-[#1a3d2b] text-white py-3 rounded-xl font-semibold hover:bg-[#2d6a4f] transition">
             Sign In →
           </button>
-          <p className="text-xs text-gray-400 text-center mt-4">🔒 Private — not linked on public site</p>
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Need help? <a href="https://wa.me/254710701013" className="text-[#2d6a4f] font-semibold">WhatsApp us</a>
+          </p>
         </div>
       </main>
     )
   }
 
-  const navItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'registrations', icon: '📋', label: 'Registrations', count: pending.length, color: 'red' },
-    { id: 'farms', icon: '🌾', label: 'Active Farms' },
-    { id: 'bookings', icon: '📅', label: 'Bookings' },
-    { id: 'payouts', icon: '💰', label: 'Payouts', count: bookings.filter(b => b.payout_status !== 'paid').length, color: 'amber' },
-  ]
-
   return (
     <main className="min-h-screen bg-[#f7f6f3] flex">
 
       {/* SIDEBAR */}
-      <aside className="w-56 bg-[#1a3d2b] min-h-screen flex flex-col fixed top-0 left-0 bottom-0 z-50">
+      <aside className="w-56 bg-[#1a3d2b] min-h-screen flex flex-col fixed top-0 left-0 bottom-0">
         <div className="p-5 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#40916c] rounded-lg flex items-center justify-center text-base">🌿</div>
-            <div>
-              <div className="text-white font-bold text-sm">AgroPro</div>
-              <div className="text-[#e9a825] text-xs font-bold">ADMIN</div>
-            </div>
+          <div className="text-white font-bold text-sm">{farm?.name}</div>
+          <div className="text-white/40 text-xs mt-1">Farm Dashboard</div>
+          <div className={`mt-2 text-xs font-bold px-2 py-0.5 rounded-full inline-block ${
+            farm?.status === 'approved' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+          }`}>
+            {farm?.status === 'approved' ? '✓ Live' : '⏳ Pending'}
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
@@ -143,19 +178,14 @@ export default function AdminPage() {
                 page === item.id ? 'bg-white/15 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'
               }`}>
               <span>{item.icon}</span>
-              <span className="flex-1 text-left">{item.label}</span>
-              {item.count ? (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                  item.color === 'red' ? 'bg-red-500 text-white' : 'bg-[#e9a825] text-[#1a1a1a]'
-                }`}>{item.count}</span>
-              ) : null}
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
-        <div className="p-3 border-t border-white/10 space-y-1">
-          <a href="/" target="_blank"
+        <div className="p-3 border-t border-white/10 space-y-2">
+          <a href="https://wa.me/254710701013" target="_blank"
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-white/40 hover:text-white transition">
-            🌐 View Public Site
+            💬 WhatsApp Support
           </a>
           <button onClick={() => setAuthed(false)}
             className="w-full text-white/40 hover:text-white text-xs py-2 transition text-left px-3">
@@ -167,29 +197,16 @@ export default function AdminPage() {
       {/* MAIN */}
       <div className="ml-56 flex-1 p-8">
 
-        {/* TOPBAR */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-xl font-bold text-gray-900 capitalize">{page}</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400">
-              {new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </span>
-            <button onClick={() => { fetchFarms(); fetchBookings() }}
-              className="text-sm border border-gray-200 px-3 py-1.5 rounded-lg text-gray-500 hover:text-gray-900 transition">
-              ↻ Refresh
-            </button>
-          </div>
-        </div>
-
-        {/* DASHBOARD */}
-        {page === 'dashboard' && (
+        {/* OVERVIEW */}
+        {page === 'overview' && (
           <div>
+            <h1 className="text-xl font-bold text-gray-900 mb-6">Welcome back 👋</h1>
             <div className="grid grid-cols-4 gap-4 mb-8">
               {[
-                { label: 'Active Farms', value: approved.length, icon: '🌾', color: 'text-green-700' },
-                { label: 'Pending Approval', value: pending.length, icon: '⏳', color: 'text-red-600' },
                 { label: 'Total Bookings', value: bookings.length, icon: '📅', color: 'text-blue-600' },
-                { label: 'Your Commission', value: `KES ${totalCommission.toLocaleString()}`, icon: '💰', color: 'text-green-700' },
+                { label: 'Total Earned (KES)', value: totalEarned.toLocaleString(), icon: '💰', color: 'text-green-700' },
+                { label: 'Your Rating', value: farm?.avg_rating || '—', icon: '⭐', color: 'text-yellow-600' },
+                { label: 'Status', value: farm?.status === 'approved' ? 'Live' : 'Pending', icon: '🌐', color: farm?.status === 'approved' ? 'text-green-700' : 'text-yellow-600' },
               ].map((k, i) => (
                 <div key={i} className="bg-white rounded-xl p-5 border border-gray-100">
                   <div className="text-2xl mb-2">{k.icon}</div>
@@ -199,79 +216,35 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {pending.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-100 mb-6">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h2 className="font-bold text-gray-900">🔔 Farms Awaiting Approval ({pending.length})</h2>
-                </div>
-                <div className="divide-y divide-gray-50">
-                  {pending.map(farm => (
-                    <div key={farm.id} className="px-6 py-4 flex items-center justify-between flex-wrap gap-3">
-                      <div>
-                        <div className="font-semibold text-gray-900">{farm.name}</div>
-                        <div className="text-sm text-gray-400">{farm.type} · {farm.county} · Visit: {farm.visit_date} · {farm.visit_time}</div>
-                        <div className="text-sm text-gray-400">📞 {farm.host_phone} · ✉️ {farm.host_email}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <a href={`https://wa.me/${farm.host_phone?.replace(/\s/g, '').replace(/^0/, '254')}`}
-                          target="_blank"
-                          className="bg-[#f0faf2] text-[#2d6a4f] border border-[#d8f3dc] px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#2d6a4f] hover:text-white transition">
-                          💬 WhatsApp
-                        </a>
-                        <button onClick={() => approveFarm(farm.id)}
-                          className="bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-green-700 hover:text-white transition">
-                          ✓ Approve
-                        </button>
-                        <button onClick={() => rejectFarm(farm.id)}
-                          className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-600 hover:text-white transition">
-                          ✗ Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {pending.length === 0 && (
-              <div className="bg-white rounded-xl border border-gray-100 p-10 text-center text-gray-400 mb-6">
-                <div className="text-4xl mb-3">✅</div>
-                <p>No pending farm registrations</p>
-              </div>
-            )}
-
-            {/* Recent bookings */}
-            <div className="bg-white rounded-xl border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-100">
-                <h2 className="font-bold text-gray-900">Recent Bookings</h2>
-              </div>
+            <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+              <h2 className="font-bold text-gray-900 mb-4">Recent Bookings</h2>
               {bookings.length === 0 ? (
-                <div className="p-10 text-center text-gray-400">No bookings yet</div>
+                <div className="text-center py-8 text-gray-400">
+                  <div className="text-4xl mb-3">📅</div>
+                  <p className="text-sm">No bookings yet — share your farm listing to get started!</p>
+                  <a href={`/farms`} target="_blank"
+                    className="mt-4 inline-block text-sm text-[#2d6a4f] font-semibold hover:underline">
+                    View your listing →
+                  </a>
+                </div>
               ) : (
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
-                      <th className="px-6 py-3 text-left">Visitor</th>
-                      <th className="px-6 py-3 text-left">Farm</th>
-                      <th className="px-6 py-3 text-left">Date</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Status</th>
+                    <tr className="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                      <th className="py-2 text-left">Date</th>
+                      <th className="py-2 text-left">Guests</th>
+                      <th className="py-2 text-left">Amount</th>
+                      <th className="py-2 text-left">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {bookings.slice(0, 5).map(b => (
-                      <tr key={b.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-sm text-gray-900">{b.visitor_name}</div>
-                          <div className="text-xs text-gray-400">{b.visitor_phone}</div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-800">{b.farms?.name || '—'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-800">{b.visit_date}</td>
-                        <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">KES {b.total_amount?.toLocaleString()}</td>
-                        <td className="px-6 py-4">
-                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                            b.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-600'
-                          }`}>{b.status}</span>
+                  <tbody>
+                    {bookings.slice(0,5).map(b => (
+                      <tr key={b.id} className="border-b border-gray-50">
+                        <td className="py-3 text-sm text-gray-600">{b.visit_date}</td>
+                        <td className="py-3 text-sm text-gray-600">{b.guests} guests</td>
+                        <td className="py-3 text-sm font-semibold text-[#2d6a4f]">KES {b.total_amount?.toLocaleString()}</td>
+                        <td className="py-3">
+                          <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full font-semibold">{b.status}</span>
                         </td>
                       </tr>
                     ))}
@@ -279,268 +252,339 @@ export default function AdminPage() {
                 </table>
               )}
             </div>
+
+            <div className="bg-[#1a3d2b] rounded-xl p-6 text-center">
+              <p className="text-white font-semibold mb-2">Need help with your listing?</p>
+              <p className="text-white/60 text-sm mb-4">AgroPro Safaris is always here to support you</p>
+              <a href="https://wa.me/254710701013" target="_blank"
+                className="bg-[#25d366] text-white px-5 py-2 rounded-full text-sm font-semibold inline-block hover:bg-[#20bd5a] transition">
+                💬 WhatsApp Us
+              </a>
+            </div>
           </div>
         )}
 
-        {/* REGISTRATIONS */}
-        {page === 'registrations' && (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">All Farm Registrations ({farms.length})</h2>
+        {/* MY LISTING */}
+        {page === 'listing' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-xl font-bold text-gray-900">My Listing</h1>
+              <div className="flex items-center gap-3">
+                {saved && <span className="text-green-600 text-sm font-semibold">✓ Submitted for approval</span>}
+                <button onClick={saveChanges} disabled={saving}
+                  className="bg-[#2d6a4f] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-[#40916c] transition disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
-            {farms.length === 0 ? (
-              <div className="p-10 text-center text-gray-400">No registrations yet</div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
-                    <th className="px-6 py-3 text-left">Farm</th>
-                    <th className="px-6 py-3 text-left">Type</th>
-                    <th className="px-6 py-3 text-left">County</th>
-                    <th className="px-6 py-3 text-left">Contact</th>
-                    <th className="px-6 py-3 text-left">Visit Date</th>
-                    <th className="px-6 py-3 text-left">Status</th>
-                    <th className="px-6 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {farms.map(farm => (
-                    <tr key={farm.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-gray-900 text-sm">{farm.name}</div>
-                        <div className="text-xs text-gray-400">{farm.location}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{farm.type}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{farm.county}</td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs text-gray-800">{farm.host_phone}</div>
-                        <div className="text-xs text-gray-400">{farm.host_email}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{farm.visit_date}</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          farm.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          farm.status === 'rejected' ? 'bg-red-100 text-red-600' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {farm.status === 'approved' ? '✓ Approved' :
-                           farm.status === 'rejected' ? '✗ Rejected' : '⏳ Pending'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2 flex-wrap">
-                          {farm.status === 'pending' && (
-                            <>
-                              <button onClick={() => approveFarm(farm.id)}
-                                className="bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-green-700 hover:text-white transition">
-                                ✓ Approve
-                              </button>
-                              <button onClick={() => rejectFarm(farm.id)}
-                                className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
-                                ✗ Reject
-                              </button>
-                            </>
-                          )}
-                          {farm.status === 'rejected' && (
-                            <button onClick={() => approveFarm(farm.id)}
-                              className="bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-green-700 hover:text-white transition">
-                              ✓ Approve
-                            </button>
-                          )}
-                          <a href={`https://wa.me/${farm.host_phone?.replace(/\s/g, '').replace(/^0/, '254')}`}
-                            target="_blank"
-                            className="bg-[#f0faf2] text-[#2d6a4f] px-2 py-1 rounded-lg text-xs font-semibold hover:bg-[#2d6a4f] hover:text-white transition">
-                            💬
-                          </a>
-                          <button onClick={() => deleteFarm(farm.id, farm.name)}
-                            className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
-                            🗑
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800 mb-6">
+              ⏳ Changes are reviewed by AgroPro Safaris before going live on your listing.
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Name</label>
+                  <input value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Type</label>
+                  <input value={editForm.type || ''} onChange={e => setEditForm({...editForm, type: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">County</label>
+                  <input value={editForm.county || ''} onChange={e => setEditForm({...editForm, county: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Price Per Person (KES)</label>
+                  <input type="number" value={editForm.price_per_person || ''} onChange={e => setEditForm({...editForm, price_per_person: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Location</label>
+                <input value={editForm.location || ''} onChange={e => setEditForm({...editForm, location: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Description</label>
+                <textarea value={editForm.description || ''} onChange={e => setEditForm({...editForm, description: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] resize-none h-28"/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">M-Pesa Number for Payouts</label>
+                <input value={editForm.mpesa_number || ''} onChange={e => setEditForm({...editForm, mpesa_number: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                  placeholder="e.g. 0712 345 678"/>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PHOTOS */}
+        {page === 'photos' && (
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 mb-6">Farm Photos</h1>
+            <div className="bg-white rounded-xl border border-gray-100 p-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800 mb-6">
+                ⏳ Photos are reviewed by AgroPro Safaris before appearing on your listing. Max 5 photos.
+              </div>
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                {photos.map((photo, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-200 relative">
+                    <img src={photo} className="w-full h-full object-cover"/>
+                    <button onClick={() => setPhotos(photos.filter((_,j) => j !== i))}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
+                      ✕
+                    </button>
+                    <div className="absolute bottom-1 left-1 right-1 text-center">
+                      <span className="bg-yellow-400 text-yellow-900 text-xs px-1.5 py-0.5 rounded-full font-bold">Pending</span>
+                    </div>
+                  </div>
+                ))}
+                {photos.length < 5 && (
+                  <label className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#40916c] hover:bg-[#f0faf2] transition">
+                    <span className="text-2xl text-gray-300 mb-1">+</span>
+                    <span className="text-xs text-gray-400">Add photo</span>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        if (file.size > 5 * 1024 * 1024) { alert('Max 5MB per photo'); return }
+                        const reader = new FileReader()
+                        reader.onload = ev => setPhotos([...photos, ev.target?.result as string])
+                        reader.readAsDataURL(file)
+                      }}/>
+                  </label>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">{photos.length}/5 photos uploaded · Each reviewed within 24 hours</p>
+            </div>
+          </div>
+        )}
+
+        {/* OPEN DAYS */}
+        {page === 'availability' && (
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 mb-6">Open Days</h1>
+            <div className="bg-white rounded-xl border border-gray-100 p-6">
+              <p className="text-sm text-gray-500 mb-4">Select the days your farm is open for visitor bookings.</p>
+              <div className="grid grid-cols-2 gap-2 max-w-sm mb-6">
+                {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Public Holidays'].map(day => {
+                  const isOpen = editForm.open_days?.includes(day)
+                  return (
+                    <button key={day} type="button"
+                      onClick={() => {
+                        const days = editForm.open_days || []
+                        setEditForm({...editForm, open_days: isOpen ? days.filter((d:string) => d !== day) : [...days, day]})
+                      }}
+                      className={`px-4 py-2.5 rounded-xl text-sm border transition font-medium ${
+                        isOpen ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#40916c]'
+                      }`}>
+                      {day}
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={saveChanges}
+                className="bg-[#2d6a4f] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#40916c] transition">
+                Save Open Days
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* EVENTS */}
+        {page === 'events' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-xl font-bold text-gray-900">Events</h1>
+              <button onClick={() => setShowEventForm(true)}
+                className="bg-[#2d6a4f] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-[#40916c] transition">
+                + Create Event
+              </button>
+            </div>
+
+            {showEventForm && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-gray-900">Create Event</h2>
+                    <button onClick={() => setShowEventForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Event Name *</label>
+                      <input value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                        placeholder="e.g. Coffee Harvest Festival"/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Date *</label>
+                        <input type="date" value={eventForm.event_date} onChange={e => setEventForm({...eventForm, event_date: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Time</label>
+                        <select value={eventForm.event_time} onChange={e => setEventForm({...eventForm, event_time: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] bg-white text-gray-900">
+                          <option>Morning</option><option>Midday</option><option>Afternoon</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Description</label>
+                      <textarea value={eventForm.description} onChange={e => setEventForm({...eventForm, description: e.target.value})}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] resize-none h-20"
+                        placeholder="What will visitors experience?"/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Price (KES) *</label>
+                        <input type="number" value={eventForm.price} onChange={e => setEventForm({...eventForm, price: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                          placeholder="e.g. 4500"/>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Max Attendees</label>
+                        <input type="number" value={eventForm.max_attendees} onChange={e => setEventForm({...eventForm, max_attendees: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                          placeholder="e.g. 30"/>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Event Type</label>
+                      <select value={eventForm.event_type} onChange={e => setEventForm({...eventForm, event_type: e.target.value})}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] bg-white text-gray-900">
+                        <option>Festival</option><option>Workshop</option><option>Harvest</option>
+                        <option>Family Day</option><option>School Program</option><option>Corporate</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-5">
+                    <button onClick={() => setShowEventForm(false)}
+                      className="flex-1 border border-gray-200 text-gray-500 py-2.5 rounded-xl text-sm font-semibold hover:border-gray-400 transition">
+                      Cancel
+                    </button>
+                    <button onClick={submitEvent}
+                      className="flex-1 bg-[#e9a825] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#f4c84a] transition">
+                      Submit for Approval
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
-        )}
 
-        {/* ACTIVE FARMS */}
-        {page === 'farms' && (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">Active Farms ({approved.length})</h2>
-            </div>
-            {approved.length === 0 ? (
-              <div className="p-10 text-center text-gray-400">
-                <div className="text-4xl mb-3">🌾</div>
-                <p>No approved farms yet.</p>
+            {events.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-100 p-10 text-center text-gray-400">
+                <div className="text-4xl mb-3">🎪</div>
+                <p className="text-sm mb-4">No events yet — create your first event!</p>
+                <p className="text-xs">Events appear on your public listing after AgroPro Safaris approval</p>
               </div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
-                    <th className="px-6 py-3 text-left">Farm</th>
-                    <th className="px-6 py-3 text-left">Type</th>
-                    <th className="px-6 py-3 text-left">Price</th>
-                    <th className="px-6 py-3 text-left">M-Pesa</th>
-                    <th className="px-6 py-3 text-left">Open Days</th>
-                    <th className="px-6 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {approved.map(farm => (
-                    <tr key={farm.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-gray-900 text-sm">{farm.name}</div>
-                        <div className="text-xs text-gray-400">{farm.county}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{farm.type}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
-                        KES {farm.price_per_person?.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{farm.mpesa_number || '—'}</td>
-                      <td className="px-6 py-4 text-xs text-gray-500">
-                        {farm.open_days?.join(' · ')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button onClick={() => rejectFarm(farm.id)}
-                            className="bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-yellow-700 hover:text-white transition">
-                            Suspend
-                          </button>
-                          <button onClick={() => deleteFarm(farm.id, farm.name)}
-                            className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
-                            🗑 Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="grid md:grid-cols-2 gap-4">
+                {events.map(event => (
+                  <div key={event.id} className="bg-white rounded-xl border border-gray-100 p-5">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-bold text-gray-900">{event.title}</h3>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        event.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {event.status === 'approved' ? '✓ Live' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-1">📅 {event.event_date} · {event.event_time}</p>
+                    <p className="text-xs text-gray-500 mb-3">{event.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#2d6a4f] text-sm">KES {event.price?.toLocaleString()} / person</span>
+                      <span className="text-xs text-gray-400">Max {event.max_attendees} people</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {/* BOOKINGS */}
         {page === 'bookings' && (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">All Bookings ({bookings.length})</h2>
-            </div>
-            {bookings.length === 0 ? (
-              <div className="p-10 text-center text-gray-400">
-                <div className="text-4xl mb-3">📅</div>
-                <p>No bookings yet</p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
-                    <th className="px-6 py-3 text-left">Visitor</th>
-                    <th className="px-6 py-3 text-left">Farm</th>
-                    <th className="px-6 py-3 text-left">Date</th>
-                    <th className="px-6 py-3 text-left">Guests</th>
-                    <th className="px-6 py-3 text-left">Total</th>
-                    <th className="px-6 py-3 text-left">Commission</th>
-                    <th className="px-6 py-3 text-left">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {bookings.map(b => (
-                    <tr key={b.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-sm text-gray-900">{b.visitor_name}</div>
-                        <div className="text-xs text-gray-400">{b.visitor_phone}</div>
-                        <div className="text-xs text-gray-400">{b.visitor_email}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{b.farms?.name || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{b.visit_date}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{b.guests}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">KES {b.total_amount?.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
-                        KES {Math.round((b.total_amount || 0) * 0.1).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          b.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-600'
-                        }`}>{b.status}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {/* PAYOUTS */}
-        {page === 'payouts' && (
           <div>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {[
-                { label: 'Total Collected', value: `KES ${totalRevenue.toLocaleString()}`, color: 'text-gray-900' },
-                { label: 'Your Commission (10%)', value: `KES ${totalCommission.toLocaleString()}`, color: 'text-green-700' },
-                { label: 'Owed to Farms (90%)', value: `KES ${Math.round(totalRevenue * 0.9).toLocaleString()}`, color: 'text-orange-600' },
-              ].map((k, i) => (
-                <div key={i} className="bg-white rounded-xl p-5 border border-gray-100">
-                  <div className={`text-2xl font-bold mb-1 ${k.color}`}>{k.value}</div>
-                  <div className="text-xs text-gray-400 uppercase tracking-wider">{k.label}</div>
-                </div>
-              ))}
-            </div>
+            <h1 className="text-xl font-bold text-gray-900 mb-6">Bookings</h1>
             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100">
-                <h2 className="font-bold text-gray-900">Payout Tracker</h2>
-                <p className="text-sm text-gray-400 mt-1">Mark as paid after sending M-Pesa to farm</p>
-              </div>
               {bookings.length === 0 ? (
-                <div className="p-10 text-center text-gray-400">No payouts yet</div>
+                <div className="p-10 text-center text-gray-400">
+                  <div className="text-4xl mb-3">📅</div>
+                  <p>No bookings yet</p>
+                </div>
               ) : (
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
-                      <th className="px-6 py-3 text-left">Farm</th>
-                      <th className="px-6 py-3 text-left">Visitor</th>
+                      <th className="px-6 py-3 text-left">Date</th>
+                      <th className="px-6 py-3 text-left">Guests</th>
                       <th className="px-6 py-3 text-left">Total</th>
-                      <th className="px-6 py-3 text-left">Farm Gets (90%)</th>
-                      <th className="px-6 py-3 text-left">Payout Status</th>
-                      <th className="px-6 py-3 text-left">Action</th>
+                      <th className="px-6 py-3 text-left">Your Share</th>
+                      <th className="px-6 py-3 text-left">Payout</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {bookings.map(b => (
                       <tr key={b.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-semibold text-gray-900">{b.farms?.name || '—'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-800">{b.visitor_name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{b.visit_date}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{b.guests} guests</td>
                         <td className="px-6 py-4 text-sm font-semibold">KES {b.total_amount?.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm font-semibold text-orange-600">
-                          KES {Math.round((b.total_amount || 0) * 0.9).toLocaleString()}
+                        <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
+                          KES {Math.round(b.total_amount * 0.9)?.toLocaleString()}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                             b.payout_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                           }`}>
                             {b.payout_status === 'paid' ? '✓ Paid' : '⏳ Pending'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {b.payout_status !== 'paid' ? (
-                            <button onClick={() => markPaid(b.id)}
-                              className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 hover:text-white transition">
-                              ✓ Mark Paid
-                            </button>
-                          ) : (
-                            <span className="text-xs text-gray-400">Done</span>
-                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* EARNINGS */}
+        {page === 'earnings' && (
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 mb-6">Earnings & Payouts</h1>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { label: 'Total Collected', value: `KES ${bookings.reduce((s,b) => s + (b.total_amount||0), 0).toLocaleString()}`, color: 'text-gray-900' },
+                { label: 'Your Earnings (90%)', value: `KES ${Math.round(bookings.reduce((s,b) => s + (b.total_amount||0)*0.9, 0)).toLocaleString()}`, color: 'text-green-700' },
+                { label: 'AgroPro Commission', value: `KES ${Math.round(bookings.reduce((s,b) => s + (b.total_amount||0)*0.1, 0)).toLocaleString()}`, color: 'text-gray-500' },
+              ].map((k,i) => (
+                <div key={i} className="bg-white rounded-xl p-5 border border-gray-100">
+                  <div className={`text-2xl font-bold mb-1 ${k.color}`}>{k.value}</div>
+                  <div className="text-xs text-gray-400 uppercase tracking-wider">{k.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-[#1a3d2b] rounded-xl p-6 text-center">
+              <h2 className="text-white font-bold mb-2">Request a Payout</h2>
+              <p className="text-white/60 text-sm mb-4">
+                AgroPro Safaris pays 50% before each visit and 50% after. Request your available balance anytime.
+              </p>
+              <a href="https://wa.me/254710701013?text=Hi! I would like to request a payout for my farm."
+                target="_blank"
+                className="bg-[#25d366] text-white px-6 py-2.5 rounded-full text-sm font-semibold inline-block hover:bg-[#20bd5a] transition">
+                💬 Request Payout via WhatsApp
+              </a>
             </div>
           </div>
         )}

@@ -150,25 +150,25 @@ export default function RegisterFarmPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Full Name *</label>
                   <input value={form.owner_name} onChange={e => update('owner_name', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="e.g. John Kamau"/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Phone Number *</label>
                   <input value={form.owner_phone} onChange={e => update('owner_phone', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="e.g. 0712 345 678"/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Email Address *</label>
                   <input type="email" value={form.owner_email} onChange={e => update('owner_email', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="you@example.com"/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">National ID / Business Reg No.</label>
                   <input value={form.owner_id} onChange={e => update('owner_id', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="For verification — kept private"/>
                 </div>
               </div>
@@ -184,7 +184,7 @@ export default function RegisterFarmPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Name *</label>
                   <input value={form.farm_name} onChange={e => update('farm_name', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="e.g. Green Valley Coffee Estate"/>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -210,19 +210,19 @@ export default function RegisterFarmPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Location / Nearest Town *</label>
                   <input value={form.location} onChange={e => update('location', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="e.g. 5km from Limuru town"/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Description *</label>
                   <textarea value={form.description} onChange={e => update('description', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] resize-none h-28"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] resize-none h-28 text-gray-900"
                     placeholder="Tell visitors about your farm — its story, what you grow, what makes it special..."/>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Farm Size (acres)</label>
                   <input type="number" value={form.farm_size} onChange={e => update('farm_size', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="e.g. 25"/>
                 </div>
               </div>
@@ -271,13 +271,13 @@ export default function RegisterFarmPage() {
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Price Per Person (KES) *</label>
                     <input type="number" value={form.price_per_person} onChange={e => update('price_per_person', e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                       placeholder="e.g. 3500"/>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Max Visitors/Day *</label>
                     <input type="number" value={form.max_visitors} onChange={e => update('max_visitors', e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                       placeholder="e.g. 20"/>
                   </div>
                 </div>
@@ -295,7 +295,7 @@ export default function RegisterFarmPage() {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">M-Pesa Number for Payouts *</label>
                   <input value={form.mpesa_number} onChange={e => update('mpesa_number', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"
                     placeholder="e.g. 0712 345 678"/>
                   <p className="text-xs text-gray-400 mt-1">This is where AgroPro Safaris sends your payments</p>
                 </div>
@@ -318,7 +318,7 @@ export default function RegisterFarmPage() {
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Preferred Visit Date *</label>
                     <input type="date" value={form.visit_date} onChange={e => update('visit_date', e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c]"/>
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Preferred Time</label>

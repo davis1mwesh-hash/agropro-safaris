@@ -19,6 +19,7 @@ export default function FarmPage({ params }: { params: Promise<{ slug: string }>
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [booked, setBooked] = useState(false)
+  const [events, setEvents] = useState<any[]>([])
 
   useEffect(() => { fetchFarm() }, [slug])
 

@@ -435,14 +435,14 @@ export default function FarmDashboard() {
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Time</label>
                         <select value={eventForm.event_time} onChange={e => setEventForm({...eventForm, event_time: e.target.value})}
                           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] bg-white text-gray-900">
-                          <option>Morning</option><option>Midday</option><option>Afternoon</option>
+                          <option>Full Day</option><option>Morning</option><option>Midday</option><option>Afternoon</option>
                         </select>
                       </div>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Description</label>
                       <textarea value={eventForm.description} onChange={e => setEventForm({...eventForm, description: e.target.value})}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] resize-none h-20"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] resize-none h-20 text-gray-900"
                         placeholder="What will visitors experience?"/>
                     </div>
                     <div className="grid grid-cols-2 gap-3">

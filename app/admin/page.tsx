@@ -12,11 +12,13 @@ export default function AdminPage() {
   const [farms, setFarms] = useState<any[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+const [events, setEvents] = useState<any[]>([])
 
   useEffect(() => {
     if (authed) {
       fetchFarms()
       fetchBookings()
+      fetchEvents()
     }
   }, [authed])
 
@@ -36,6 +38,29 @@ export default function AdminPage() {
     if (data) setBookings(data)
   }
 
+  async function fetchEvents() {
+    const { data } = await supabase
+      .from('events')
+      .select('*, farms(name)')
+      .order('created_at', { ascending: false })
+    if (data) setEvents(data)
+  }
+
+  async function approveEvent(id: string) {
+    await supabase.from('events').update({ status: 'approved' }).eq('id', id)
+    fetchEvents()
+  }
+
+  async function rejectEvent(id: string) {
+    await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
+    fetchEvents()
+  }
+
+  async function deleteEvent(id: string) {
+    if (!confirm('Delete this event?')) return
+    await supabase.from('events').delete().eq('id', id)
+    fetchEvents()
+  }
   async function approveFarm(id: string) {
     setLoading(true)
     await supabase.from('farms').update({ status: 'approved' }).eq('id', id)
@@ -119,6 +144,7 @@ export default function AdminPage() {
     { id: 'farms', icon: '🌾', label: 'Active Farms' },
     { id: 'bookings', icon: '📅', label: 'Bookings' },
     { id: 'payouts', icon: '💰', label: 'Payouts', count: bookings.filter(b => b.payout_status !== 'paid').length, color: 'amber' },
+    { id: 'events', icon: '🎪', label: 'Events', count: events.filter(e => e.status === 'pending').length, color: 'red' },
   ]
 
   return (
@@ -544,7 +570,93 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-
+{/* EVENTS */}
+        {page === 'events' && (
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-gray-900">Farm Events ({events.length})</h2>
+                <p className="text-sm text-gray-400 mt-1">Review and approve events submitted by farms</p>
+              </div>
+            </div>
+            {events.length === 0 ? (
+              <div className="p-10 text-center text-gray-400">
+                <div className="text-4xl mb-3">🎪</div>
+                <p>No events submitted yet</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 text-xs text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left">Event</th>
+                    <th className="px-6 py-3 text-left">Farm</th>
+                    <th className="px-6 py-3 text-left">Date</th>
+                    <th className="px-6 py-3 text-left">Price</th>
+                    <th className="px-6 py-3 text-left">Attendees</th>
+                    <th className="px-6 py-3 text-left">Status</th>
+                    <th className="px-6 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {events.map(event => (
+                    <tr key={event.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-sm text-gray-900">{event.title}</div>
+                        <div className="text-xs text-gray-400">{event.event_type}</div>
+                        <div className="text-xs text-gray-500 mt-1 max-w-xs">{event.description}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{event.farms?.name || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">
+                        {event.event_date}<br/>
+                        <span className="text-xs text-gray-400">{event.event_time}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-[#2d6a4f]">
+                        {event.price === 0 ? 'FREE' : `KES ${event.price?.toLocaleString()}`}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-800">Max {event.max_attendees}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                          event.status === 'approved' ? 'bg-green-100 text-green-700' :
+                          event.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {event.status === 'approved' ? '✓ Live' :
+                           event.status === 'rejected' ? '✗ Rejected' : '⏳ Pending'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          {event.status === 'pending' && (
+                            <>
+                              <button onClick={() => approveEvent(event.id)}
+                                className="bg-green-50 text-green-700 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-green-700 hover:text-white transition">
+                                ✓ Approve
+                              </button>
+                              <button onClick={() => rejectEvent(event.id)}
+                                className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
+                                ✗ Reject
+                              </button>
+                            </>
+                          )}
+                          {event.status === 'approved' && (
+                            <button onClick={() => rejectEvent(event.id)}
+                              className="bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-yellow-700 hover:text-white transition">
+                              Suspend
+                            </button>
+                          )}
+                          <button onClick={() => deleteEvent(event.id)}
+                            className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
+                            🗑
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
     </main>
   )

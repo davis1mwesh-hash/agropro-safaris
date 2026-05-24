@@ -24,7 +24,8 @@ export default function FarmDashboard() {
   const [editForm, setEditForm] = useState<any>({})
   const [eventForm, setEventForm] = useState({
     title: '', description: '', event_date: '',
-    event_time: 'Morning', price: '', max_attendees: '', event_type: 'Festival'
+    event_time: 'Full Day', price: '', max_attendees: '', event_type: 'Festival',
+    poster_url: ''
   })
   const [events, setEvents] = useState<any[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
@@ -94,12 +95,13 @@ export default function FarmDashboard() {
         price: Number(eventForm.price),
         max_attendees: Number(eventForm.max_attendees),
         event_type: eventForm.event_type,
+        poster_url: eventForm.poster_url,
         status: 'pending'
       }])
       fetchEvents(farm.id)
     }
     setShowEventForm(false)
-    setEventForm({ title:'', description:'', event_date:'', event_time:'Morning', price:'', max_attendees:'', event_type:'Festival' })
+    setEventForm({ title:'', description:'', event_date:'', event_time:'Full Day', price:'', max_attendees:'', event_type:'Festival', poster_url:'' })
     alert('✅ Event submitted for AgroPro Safaris approval!')
   }
 
@@ -466,6 +468,74 @@ export default function FarmDashboard() {
                         <option>Festival</option><option>Workshop</option><option>Harvest</option>
                         <option>Family Day</option><option>School Program</option><option>Corporate</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Event Poster</label>
+                      {eventForm.poster_url ? (
+                        <div className="relative">
+                          <img src={eventForm.poster_url} className="w-full h-40 object-cover rounded-xl border border-gray-200"/>
+                          <button onClick={() => setEventForm({...eventForm, poster_url: ''})}
+                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="w-full h-32 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#40916c] hover:bg-[#f0faf2] transition">
+                          <span className="text-2xl mb-1">🖼️</span>
+                          <span className="text-xs text-gray-400">Click to upload poster</span>
+                          <span className="text-xs text-gray-300 mt-1">JPG, PNG — max 5MB</span>
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return }
+                              const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`
+                              const { data, error } = await supabase.storage
+                                .from('event-poster')
+                                .upload(fileName, file)
+                              if (error) { alert('Upload failed: ' + error.message); return }
+                              const { data: urlData } = supabase.storage
+                                .from('event-poster')
+                                .getPublicUrl(fileName)
+                              setEventForm({...eventForm, poster_url: urlData.publicUrl})
+                            }}/>
+                        </label>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Event Poster</label>
+                      {eventForm.poster_url ? (
+                        <div className="relative">
+                          <img src={eventForm.poster_url} className="w-full h-40 object-cover rounded-xl border border-gray-200"/>
+                          <button onClick={() => setEventForm({...eventForm, poster_url: ''})}
+                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="w-full h-32 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#40916c] hover:bg-[#f0faf2] transition">
+                          <span className="text-2xl mb-1">🖼️</span>
+                          <span className="text-xs text-gray-400">Click to upload poster</span>
+                          <span className="text-xs text-gray-300 mt-1">JPG, PNG — max 5MB</span>
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return }
+                              const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`
+                              const { data, error } = await supabase.storage
+                                .from('event-poster')
+                                .upload(fileName, file)
+                              if (error) { alert('Upload failed: ' + error.message); return }
+                              const { data: urlData } = supabase.storage
+                                .from('event-poster')
+                                .getPublicUrl(fileName)
+                              setEventForm({...eventForm, poster_url: urlData.publicUrl})
+                            }}/>
+                        </label>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-3 mt-5">

@@ -660,31 +660,6 @@ export default function FarmDashboard() {
         )}
 
       </div>
-    {/* MOBILE BOTTOM NAV */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1a3d2b] border-t border-white/10 z-50">
-        <div className="flex items-center justify-around py-2">
-          {[
-            { id:'overview', icon:'📊', label:'Home' },
-            { id:'bookings', icon:'📋', label:'Bookings' },
-            { id:'events', icon:'🎪', label:'Events' },
-            { id:'earnings', icon:'💰', label:'Earnings' },
-            { id:'listing', icon:'🌾', label:'Listing' },
-          ].map(item => (
-            <button key={item.id}
-              onClick={() => setPage(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition ${
-                page === item.id ? 'text-white' : 'text-white/40'
-              }`}>
-              <span className="text-xl">{item.icon}</span>
-              <span className="text-xs font-medium">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* MOBILE PADDING BOTTOM */}
-      <div className="md:hidden h-20"></div>
-
     </div>
     </div>
     </main>

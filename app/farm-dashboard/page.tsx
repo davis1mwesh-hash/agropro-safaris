@@ -162,7 +162,7 @@ export default function FarmDashboard() {
     <main className="min-h-screen bg-[#f7f6f3] flex">
 
       {/* SIDEBAR */}
-      <aside className="w-56 bg-[#1a3d2b] min-h-screen flex flex-col fixed top-0 left-0 bottom-0">
+      <aside className="w-56 bg-[#1a3d2b] min-h-screen flex-col fixed top-0 left-0 bottom-0 hidden md:flex">
         <div className="p-5 border-b border-white/10">
           <div className="text-white font-bold text-sm">{farm?.name}</div>
           <div className="text-white/40 text-xs mt-1">Farm Dashboard</div>
@@ -197,13 +197,13 @@ export default function FarmDashboard() {
       </aside>
 
       {/* MAIN */}
-      <div className="ml-56 flex-1 p-8">
+      <div className="md:ml-56 flex-1 p-4 md:p-8">
 
         {/* OVERVIEW */}
         {page === 'overview' && (
           <div>
             <h1 className="text-xl font-bold text-gray-900 mb-6">Welcome back 👋</h1>
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
                 { label: 'Total Bookings', value: bookings.length, icon: '📅', color: 'text-blue-600' },
                 { label: 'Total Earned (KES)', value: totalEarned.toLocaleString(), icon: '💰', color: 'text-green-700' },
@@ -660,6 +660,34 @@ export default function FarmDashboard() {
         )}
 
       </div>
+    {/* MOBILE BOTTOM NAV */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1a3d2b] border-t border-white/10 z-50">
+        <div className="flex items-center justify-around py-2">
+          {[
+            { id:'overview', icon:'📊', label:'Home' },
+            { id:'bookings', icon:'📋', label:'Bookings' },
+            { id:'events', icon:'🎪', label:'Events' },
+            { id:'earnings', icon:'💰', label:'Earnings' },
+            { id:'listing', icon:'🌾', label:'Listing' },
+          ].map(item => (
+            <button key={item.id}
+              onClick={() => setPage(item.id)}
+              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition ${
+                page === item.id ? 'text-white' : 'text-white/40'
+              }`}>
+              <span className="text-xl">{item.icon}</span>
+              <span className="text-xs font-medium">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* MOBILE PADDING BOTTOM */}
+      <div className="md:hidden h-20"></div>
+
+    </div>
     </main>
+  )
+}
   )
 }

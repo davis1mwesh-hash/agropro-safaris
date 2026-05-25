@@ -686,6 +686,7 @@ export default function FarmDashboard() {
       <div className="md:hidden h-20"></div>
 
     </div>
+    </div>
     </main>
   )
 }

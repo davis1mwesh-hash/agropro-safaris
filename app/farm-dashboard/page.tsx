@@ -660,7 +660,6 @@ export default function FarmDashboard() {
         )}
 
       </div>
-    </div>
     </main>
   )
 }

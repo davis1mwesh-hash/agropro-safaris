@@ -689,5 +689,3 @@ export default function FarmDashboard() {
     </main>
   )
 }
-  )
-}

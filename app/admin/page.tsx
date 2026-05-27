@@ -380,7 +380,7 @@ const [events, setEvents] = useState<any[]>([])
                           </a>
                           <button onClick={() => deleteFarm(farm.id, farm.name)}
                             className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
-                            🗑
+                            🗑 Delete
                           </button>
                         </div>
                       </td>

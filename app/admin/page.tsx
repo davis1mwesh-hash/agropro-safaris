@@ -13,12 +13,20 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 const [events, setEvents] = useState<any[]>([])
+const [tours, setTours] = useState<any[]>([])
+const [showTourForm, setShowTourForm] = useState(false)
+const [tourForm, setTourForm] = useState({
+    title: '', description: '', tour_date: '', tour_time: 'Full Day',
+    price: '', max_participants: '', county: '', location: '',
+    poster_url: '', includes: [] as string[]
+  })
 
   useEffect(() => {
     if (authed) {
       fetchFarms()
       fetchBookings()
       fetchEvents()
+      fetchTours()
     }
   }, [authed])
 
@@ -44,6 +52,42 @@ const [events, setEvents] = useState<any[]>([])
       .select('*, farms(name)')
       .order('created_at', { ascending: false })
     if (data) setEvents(data)
+  }
+async function fetchTours() {
+    const { data } = await supabase
+      .from('tours')
+      .select('*')
+      .order('tour_date', { ascending: true })
+    if (data) setTours(data)
+  }
+
+  async function deleteTour(id: string) {
+    if (!confirm('Delete this tour?')) return
+    await supabase.from('tours').delete().eq('id', id)
+    fetchTours()
+  }
+
+  async function submitTour() {
+    if (!tourForm.title || !tourForm.tour_date || !tourForm.price) {
+      alert('Please fill in tour name, date and price.')
+      return
+    }
+    await supabase.from('tours').insert([{
+      title: tourForm.title,
+      description: tourForm.description,
+      tour_date: tourForm.tour_date,
+      tour_time: tourForm.tour_time,
+      price: Number(tourForm.price),
+      max_participants: Number(tourForm.max_participants),
+      county: tourForm.county,
+      location: tourForm.location,
+      poster_url: tourForm.poster_url,
+      status: 'active'
+    }])
+    fetchTours()
+    setShowTourForm(false)
+    setTourForm({ title:'', description:'', tour_date:'', tour_time:'Full Day', price:'', max_participants:'', county:'', location:'', poster_url:'', includes:[] })
+    alert('✅ Tour created and live!')
   }
 
   async function approveEvent(id: string) {
@@ -145,6 +189,7 @@ const [events, setEvents] = useState<any[]>([])
     { id: 'bookings', icon: '📅', label: 'Bookings' },
     { id: 'payouts', icon: '💰', label: 'Payouts', count: bookings.filter(b => b.payout_status !== 'paid').length, color: 'amber' },
     { id: 'events', icon: '🎪', label: 'Events', count: events.filter(e => e.status === 'pending').length, color: 'red' },
+    { id: 'tours', icon: '🚜', label: 'Farm Tours' },
   ]
 
   return (
@@ -661,3 +706,162 @@ const [events, setEvents] = useState<any[]>([])
     </main>
   )
 }
+{/* TOURS */}
+        {page === 'tours' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-bold text-gray-900 text-xl">Farm Tours</h2>
+                <p className="text-sm text-gray-400 mt-1">Create and manage tours that visitors can book</p>
+              </div>
+              <button onClick={() => setShowTourForm(true)}
+                className="bg-[#2d6a4f] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-[#40916c] transition">
+                + Create Tour
+              </button>
+            </div>
+
+            {showTourForm && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-gray-900">Create Farm Tour</h2>
+                    <button onClick={() => setShowTourForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Tour Name *</label>
+                      <input value={tourForm.title} onChange={e => setTourForm({...tourForm, title: e.target.value})}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                        placeholder="e.g. Coffee Farm Discovery Tour"/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Date *</label>
+                        <input type="date" value={tourForm.tour_date} onChange={e => setTourForm({...tourForm, tour_date: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"/>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Time</label>
+                        <select value={tourForm.tour_time} onChange={e => setTourForm({...tourForm, tour_time: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] bg-white text-gray-900">
+                          <option>Full Day</option>
+                          <option>Morning</option>
+                          <option>Midday</option>
+                          <option>Afternoon</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Description</label>
+                      <textarea value={tourForm.description} onChange={e => setTourForm({...tourForm, description: e.target.value})}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] resize-none h-20 text-gray-900"
+                        placeholder="What will visitors experience on this tour?"/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Price (KES) *</label>
+                        <input type="number" value={tourForm.price} onChange={e => setTourForm({...tourForm, price: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                          placeholder="e.g. 3500"/>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Max Participants</label>
+                        <input type="number" value={tourForm.max_participants} onChange={e => setTourForm({...tourForm, max_participants: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                          placeholder="e.g. 20"/>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">County</label>
+                        <input value={tourForm.county} onChange={e => setTourForm({...tourForm, county: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                          placeholder="e.g. Kiambu"/>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Location</label>
+                        <input value={tourForm.location} onChange={e => setTourForm({...tourForm, location: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#40916c] text-gray-900"
+                          placeholder="e.g. Limuru area"/>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Tour Poster</label>
+                      {tourForm.poster_url ? (
+                        <div className="relative">
+                          <img src={tourForm.poster_url} className="w-full h-36 object-cover rounded-xl"/>
+                          <button onClick={() => setTourForm({...tourForm, poster_url: ''})}
+                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">✕</button>
+                        </div>
+                      ) : (
+                        <label className="w-full h-28 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#40916c] hover:bg-[#f0faf2] transition">
+                          <span className="text-2xl mb-1">🖼️</span>
+                          <span className="text-xs text-gray-400">Click to upload poster</span>
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return }
+                              const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`
+                              const { error } = await supabase.storage.from('event-poster').upload(fileName, file)
+                              if (error) { alert('Upload failed: ' + error.message); return }
+                              const { data: urlData } = supabase.storage.from('event-poster').getPublicUrl(fileName)
+                              setTourForm({...tourForm, poster_url: urlData.publicUrl})
+                            }}/>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-5">
+                    <button onClick={() => setShowTourForm(false)}
+                      className="flex-1 border border-gray-200 text-gray-500 py-2.5 rounded-xl text-sm font-semibold">
+                      Cancel
+                    </button>
+                    <button onClick={submitTour}
+                      className="flex-1 bg-[#2d6a4f] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#40916c] transition">
+                      Create Tour
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tours.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-100 p-10 text-center text-gray-400">
+                <div className="text-4xl mb-3">🚜</div>
+                <p>No tours yet — create your first farm tour!</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tours.map(tour => (
+                  <div key={tour.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                    {tour.poster_url ? (
+                      <img src={tour.poster_url} className="w-full h-40 object-cover"/>
+                    ) : (
+                      <div className="w-full h-40 bg-gradient-to-br from-[#1a3d2b] to-[#52b788] flex items-center justify-center text-5xl">🚜</div>
+                    )}
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-bold text-gray-900 text-sm">{tour.title}</h3>
+                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">Live</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mb-1">📅 {tour.tour_date} · {tour.tour_time}</div>
+                      <div className="text-xs text-gray-400 mb-2">📍 {tour.county} · {tour.location}</div>
+                      <p className="text-xs text-gray-500 mb-3 line-clamp-2">{tour.description}</p>
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="font-bold text-[#2d6a4f] text-sm">KES {tour.price?.toLocaleString()}</span>
+                        <div className="flex gap-2">
+                          <span className="text-xs text-gray-400">Max {tour.max_participants}</span>
+                          <button onClick={() => deleteTour(tour.id)}
+                            className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition">
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}

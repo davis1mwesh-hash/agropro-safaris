@@ -28,9 +28,22 @@ export default function FarmsPage() {
   const [active, setActive] = useState('All')
   const [search, setSearch] = useState('')
   const [farms, setFarms] = useState<any[]>([])
+  const [tours, setTours] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { fetchFarms() }, [])
+  useEffect(() => { 
+    fetchFarms()
+    fetchTours()
+  }, [])
+
+  async function fetchTours() {
+    const { data } = await supabase
+      .from('tours')
+      .select('*')
+      .eq('status', 'active')
+      .order('tour_date', { ascending: true })
+    if (data) setTours(data)
+  }
 
   async function fetchFarms() {
     const { data } = await supabase
@@ -135,6 +148,44 @@ export default function FarmsPage() {
                 </Link>
               )
             })}
+          </div>
+        )}
+
+        {tours.length > 0 && (
+          <div className="mt-16 mb-8">
+            <div className="text-center mb-8">
+              <span className="text-[#40916c] text-xs font-bold uppercase tracking-widest">Organised by AgroPro Safaris</span>
+              <h2 className="text-3xl font-bold text-gray-900 mt-2">Upcoming Farm Tours</h2>
+              <p className="text-gray-500 mt-2 text-sm">Curated farm tour experiences across Kenya</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {tours.map(tour => (
+                <div key={tour.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition">
+                  {tour.poster_url ? (
+                    <img src={tour.poster_url} className="w-full h-48 object-cover"/>
+                  ) : (
+                    <div className="w-full h-48 bg-gradient-to-br from-[#1a3d2b] to-[#52b788] flex items-center justify-center text-6xl">🚜</div>
+                  )}
+                  <div className="p-5">
+                    <div className="text-xs text-[#40916c] font-bold mb-1">📅 {tour.tour_date} · {tour.tour_time}</div>
+                    <h3 className="font-bold text-gray-900 text-lg mb-1">{tour.title}</h3>
+                    <div className="text-xs text-gray-400 mb-2">📍 {tour.county}{tour.location ? ` · ${tour.location}` : ''}</div>
+                    <p className="text-xs text-gray-500 mb-4 line-clamp-2">{tour.description}</p>
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div>
+                        <div className="font-bold text-[#2d6a4f]">KES {tour.price?.toLocaleString()}</div>
+                        <div className="text-xs text-gray-400">per person · Max {tour.max_participants}</div>
+                      </div>
+                      <a href={`https://wa.me/254710701013?text=Hi! I want to book the ${tour.title} tour on ${tour.tour_date}.`}
+                        target="_blank"
+                        className="bg-[#2d6a4f] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#40916c] transition">
+                        Book Tour
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

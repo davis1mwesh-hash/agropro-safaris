@@ -104,7 +104,7 @@ export default function FarmPage({ params }: { params: Promise<{ slug: string }>
           <br/><br/>
           AgroPro Safaris will contact you on <strong>{phone}</strong> within 24 hours.
         </p>
-        <div className="bg-[#f0faf2] rounded-xl p-4 mb-6 text-left">
+        <div className="bg-[#f0faf2] rounded-xl p-4 mb-6 text-left text-gray-900">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-gray-500">Total</span>
             <span className="font-bold">KES {total.toLocaleString()}</span>
